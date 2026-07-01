@@ -1,6 +1,7 @@
 package olistay.backend.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import olistay.backend.exception.ImageUploadException;
@@ -37,11 +38,14 @@ public class CloudinaryServiceImpl implements CloudinaryService {
                             // Cap dimensions on upload so a host uploading a
                             // 12MP photo straight from a phone doesn't bloat
                             // storage/bandwidth; Cloudinary handles the resize.
-                            "transformation", ObjectUtils.asMap(
-                                    "width", 2000,
-                                    "height", 2000,
-                                    "crop", "limit"
-                            )
+                            // NOTE: must be a Transformation object, not a raw
+                            // Map — the SDK can't serialize a plain Map into a
+                            // valid transformation string (causes "Invalid
+                            // transformation component" errors).
+                            "transformation", new Transformation()
+                                    .width(2000)
+                                    .height(2000)
+                                    .crop("limit")
                     )
             );
 
