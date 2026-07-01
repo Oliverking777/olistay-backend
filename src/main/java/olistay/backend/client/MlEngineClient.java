@@ -3,6 +3,7 @@ package olistay.backend.client;
 import lombok.RequiredArgsConstructor;
 import olistay.backend.dto.ml.*;
 import olistay.backend.exception.MlEngineException;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -98,9 +99,20 @@ public class MlEngineClient {
      * and DNS/SSL issues — anything where the engine never responded at all.
      */
     private <T> T callEngine(String path, Object requestBody, Class<T> responseType) {
+        // Fail loudly and locally if the body is ever null — otherwise RestClient
+        // sends an empty request and FastAPI reports the opaque
+        //   422 {"loc":["body"],"input":null}
+        // which is very hard to trace back to a null DTO on this side.
+        if (requestBody == null) {
+            throw new MlEngineException(
+                    "Refusing to call " + path + " with a null request body "
+                            + "(would arrive at the AI Engine as an empty body → 422)."
+            );
+        }
         try {
             T response = mlEngineRestClient.post()
                     .uri(path)
+                    .contentType(MediaType.APPLICATION_JSON)   // explicit; don't rely on auto-detection
                     .body(requestBody)
                     .retrieve()
                     .body(responseType);
