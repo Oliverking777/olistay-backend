@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +56,7 @@ public class PropertyController {
      * Caller must be HOST or ADMIN — enforced in PropertyServiceImpl since
      * the role check needs the loaded User entity.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PropertyResponseDTO> createProperty(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -77,6 +79,7 @@ public class PropertyController {
      * HOST mid-way through the "Become a Landlord" + create-listing flow may
      * call this before their role promotion has technically completed).
      */
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/suggest-rent")
     public ResponseEntity<olistay.backend.dto.ml.RentPredictResponseDTO> suggestRent(
             @Valid @RequestBody PropertyRequestDTO request
@@ -90,6 +93,7 @@ public class PropertyController {
      * their saved financial profile. 404 if the tenant has no financial
      * profile yet — create one via POST /tenant/financial-profile first.
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/score")
     public ResponseEntity<olistay.backend.dto.ml.ScoringResponseDTO> scoreProperty(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -106,6 +110,7 @@ public class PropertyController {
      * price" view on a property detail page. 404 if the tenant has no
      * financial profile yet.
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/hidden-costs")
     public ResponseEntity<olistay.backend.dto.ml.HiddenCostsResponseDTO> calculateHiddenCosts(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -120,6 +125,7 @@ public class PropertyController {
      * properties (optionally filtered by city) for the authenticated
      * tenant. 404 if the tenant has no financial profile yet.
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/recommendations")
     public ResponseEntity<olistay.backend.dto.ml.RecommendResponseDTO> recommendProperties(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -136,6 +142,7 @@ public class PropertyController {
      * Public detail view — only returns AVAILABLE properties, with the full
      * images collection ("get by id, show all images").
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/{id}")
     public ResponseEntity<PropertyResponseDTO> getAvailableProperty(@PathVariable Long id) {
         return ResponseEntity.ok(propertyService.getAvailablePropertyById(id));
@@ -146,6 +153,7 @@ public class PropertyController {
      * Default browse feed — all AVAILABLE listings, paginated, primary
      * image only ("get properties, show primary image").
      */
+    @PreAuthorize("permitAll()")
     @GetMapping
     public ResponseEntity<Page<PropertySummaryDTO>> browseAvailable(Pageable pageable) {
         return ResponseEntity.ok(propertyService.browseAvailable(pageable));
@@ -154,6 +162,7 @@ public class PropertyController {
     /**
      * GET /properties/city/{city}
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/city/{city}")
     public ResponseEntity<Page<PropertySummaryDTO>> browseByCity(
             @PathVariable String city,
@@ -165,6 +174,7 @@ public class PropertyController {
     /**
      * GET /properties/city/{city}/neighbourhood/{neighbourhood}
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/city/{city}/neighbourhood/{neighbourhood}")
     public ResponseEntity<Page<PropertySummaryDTO>> browseByCityAndNeighbourhood(
             @PathVariable String city,
@@ -179,6 +189,7 @@ public class PropertyController {
     /**
      * GET /properties/search?keyword=...
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/search")
     public ResponseEntity<Page<PropertySummaryDTO>> searchByKeyword(
             @RequestParam String keyword,
@@ -202,6 +213,7 @@ public class PropertyController {
      * Public, no auth required. Returns AVAILABLE listings only, summary
      * view (primary image only) to keep paginated payloads small.
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/filter")
     public ResponseEntity<Page<PropertySummaryDTO>> searchWithFilters(
             @RequestParam(required = false) String keyword,
@@ -223,6 +235,7 @@ public class PropertyController {
      * GET /properties/me
      * The authenticated HOST's full portfolio, regardless of status.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @GetMapping("/me")
     public ResponseEntity<List<PropertySummaryDTO>> getMyListings(
             @AuthenticationPrincipal UserDetails userDetails
@@ -237,6 +250,7 @@ public class PropertyController {
      * Requires authentication (enforced via SecurityConfig's /properties/**
      * authenticated() catch-all, since this path isn't in the public matcher list).
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @GetMapping("/{id}/details")
     public ResponseEntity<PropertyResponseDTO> getPropertyDetails(@PathVariable Long id) {
         return ResponseEntity.ok(propertyService.getPropertyById(id));
@@ -247,6 +261,7 @@ public class PropertyController {
      * Full field update. Does not touch images — use the image endpoints
      * below for that. Only the owning HOST or an ADMIN may perform this.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<PropertyResponseDTO> updateProperty(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -261,6 +276,7 @@ public class PropertyController {
     /**
      * PATCH /properties/{id}/status?status=AVAILABLE
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<PropertyResponseDTO> updateStatus(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -276,6 +292,7 @@ public class PropertyController {
      * DELETE /properties/{id}
      * Deletes the property, its image rows, and their Cloudinary assets.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProperty(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -290,6 +307,7 @@ public class PropertyController {
      * Adds one or more images to an existing property. If the property has
      * zero images before this call, the first file uploaded becomes primary.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<PropertyImageResponseDTO>> uploadImages(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -307,6 +325,7 @@ public class PropertyController {
      * Removes a single image. If it was primary, the next image by upload
      * order is automatically promoted.
      */
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     @DeleteMapping("/{id}/images/{imageId}")
     public ResponseEntity<Void> deleteImage(
             @AuthenticationPrincipal UserDetails userDetails,

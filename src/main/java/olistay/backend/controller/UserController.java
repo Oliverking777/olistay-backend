@@ -9,6 +9,7 @@ import olistay.backend.dto.UserResponseDTO;
 import olistay.backend.service.HostService;
 import olistay.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ public class UserController {
      * GET /users/me
      * Returns the authenticated user's own profile.
      */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<UserResponseDTO> getCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails
