@@ -127,6 +127,20 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(AppointmentConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleAppointmentConflict(
+            AppointmentConflictException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request);
+    }
+
+    // ------------------------------------------------------------------ 403 (appointment)
+    @ExceptionHandler(AppointmentAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleAppointmentAccess(
+            AppointmentAccessException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+
 
     // ------------------------------------------------------------------ 500
     @ExceptionHandler(Exception.class)
